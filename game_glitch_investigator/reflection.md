@@ -12,12 +12,12 @@ Answer each question in 3 to 5 sentences. Be specific and honest about what actu
 
 Document at least 3 bugs you found. Add rows as needed.
 
-| Input | Expected Behavior | Actual Behavior | Console Output / Error |
-|-------|-------------------|-----------------|------------------------|
-| | | | |
-| | | | |
-| | | | |
-
+| Input                 | Expected Behavior                       | Actual Behavior                  | Console Output / Error |
+| --------------------- | --------------------------------------- | -------------------------------- | ---------------------- |
+| guess of 34           | Go Higher                               | GO Lower                         | none                   |
+| guess of 66           | Go Lower                                | GO Higher                        | none                   |
+| Click new Game button | start a new game with clean log history | the log history persists         | none                   |
+| Click new Game button | start a new game with score = 0         | score is the previous game score | none                   |
 ---
 
 ## 2. How did you use AI as a teammate?
@@ -25,6 +25,12 @@ Document at least 3 bugs you found. Add rows as needed.
 - Which AI tools did you use on this project (for example: ChatGPT, Gemini, Copilot)?
 - Give one example of an AI suggestion that was correct (including what the AI suggested and how you verified the result).
 - Give one example of an AI suggestion that was incorrect or misleading (including what the AI suggested and how you verified the result).
+
+I used **Claude Code in agent mode** as my main AI teammate, mostly to diagnose root causes and to refactor `check_guess` out of `app.py` into `logic_utils.py`.
+
+A correct suggestion: When the "go higher / go lower" hints were backwards on some guesses, Claude diagnosed that `secret` was sometimes arriving as a **string** instead of an int, so `guess > secret` was doing a *lexicographic* comparison (e.g. `"9" > "80"` evaluates to `True`). It suggested coercing both values with `int(...)` before comparing. I verified this by writing a regression test, `test_string_secret_compares_numerically`, that calls `check_guess(9, "80")` and asserts the outcome is `"Too Low"` — it passed after the fix and would have failed before.
+
+A misleading suggestion: Early on, the AI's first instinct was to treat the bug as just "backwards labels" and fix it by swapping the hint message strings. That would have *looked* fixed for one input but still given the wrong direction for others, because it never addressed the underlying string-vs-int comparison. I caught this by testing more than one guess (a small number vs. a large one) and seeing the direction still flip incorrectly, which is what led me to push for the real type-coercion fix.
 
 ---
 
