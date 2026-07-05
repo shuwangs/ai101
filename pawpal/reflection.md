@@ -18,8 +18,9 @@ The Scheduler uses pet and CareTask to generate and view the scheduled tasks, it
 **b. Design changes**
 
 - Did your design change during implementation?
+  Yes
 - If yes, describe at least one change and why you made it.
-
+The CarkTask has no back-reference to a Pet.
 ---
 
 ## 2. Scheduling Logic and Tradeoffs
