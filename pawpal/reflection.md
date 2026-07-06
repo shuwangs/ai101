@@ -33,7 +33,15 @@ The CarkTask has no back-reference to a Pet.
 **b. Tradeoffs**
 
 - Describe one tradeoff your scheduler makes.
+  1.generate_today_schedule — greedy shortest-first
+Choice: sort by duration, take tasks until the time budget runs out.
+2.generate_today_schedule can happily put two overlapping tasks in the same plan; conflict_warnings() just reports it afterward.
+
+Gain: simple, non-destructive, the human decides what to drop.
+Cost: the "schedule" isn't actually conflict-free — it's a to-do list with a warning stapled on. A real calendar would refuse or auto-reshuffle.
 - Why is that tradeoff reasonable for this scenario?
+
+PawPal is a planning aid for a *human* pet owner, not an autonomous calendar that acts on its own. In this scenario the owner has context the program doesn't — they know the walk can slide 15 minutes, or that medication is non-negotiable. So surfacing a clear warning and letting the owner decide is more useful (and safer) than having the scheduler silently drop or reshuffle a task it doesn't fully understand. The task set is also small (a few tasks across a couple of pets per day), so conflicts are rare and easy for a person to resolve at a glance — the cost of manual resolution is tiny. Auto-resolution would add real complexity (priority rules, tie-breaking, re-timing logic) and the risk of the program making a *wrong* call, which isn't worth it at this stage. Greedy shortest-first is reasonable for the same reason: the goal is simply to fit as much routine care as possible into a limited day, so optimizing for task *count* is a good-enough proxy when tasks are roughly equal in importance, and it keeps the logic simple, fast, and easy to explain and test. If the app later grew priorities, real calendar times, or multi-day planning, revisiting both choices would be justified.
 
 ---
 
