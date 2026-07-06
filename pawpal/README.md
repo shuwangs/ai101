@@ -121,15 +121,123 @@ All methods live in [`pawpal_system.py`](pawpal_system.py).
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+PawPal+ runs two ways: an interactive **Streamlit UI** ([`app.py`](app.py)) and a
+scripted **CLI demo** ([`main.py`](main.py)) that prints every scheduler behavior in
+one shot. Launch the UI with:
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+```bash
+streamlit run app.py
+```
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+### Main UI features & what you can do
+
+The app is a single scrollable page ([`app.py`](app.py)) with four working sections:
+
+- **Owner & pet setup** — type an owner name, then a pet's name and species and
+  click **Add a Pet**. The owner is held in `st.session_state`, so pets and tasks
+  persist as you interact.
+- **Tasks** — pick which pet the task belongs to, then enter a title, duration
+  (minutes), frequency (daily/weekly/monthly), and an optional `HH:MM` start time.
+  **Add task** validates the input (bad start times or durations raise a friendly
+  error) and appends it. Each pet renders as a table of its current tasks.
+- **Build Schedule** — **Generate schedule** runs the `Scheduler` against the
+  owner's time budget. It surfaces any **conflict warnings**, then shows today's
+  plan with three metrics (tasks planned, minutes used vs. budget, time left) and a
+  full table.
+- **Explore Tasks** — a live sort/filter explorer with five views: chronological,
+  shortest-first, pending-only, by pet, and by frequency — each rendered as a table.
+
+### Example workflow
+
+1. Set **Owner name** to `Jordan` and add a pet: name `Rex`, species `dog`.
+2. In **Tasks**, choose `Rex`, add `Morning walk` — `30` min, `daily`, start `08:00`.
+3. Add a second task for `Rex`: `Give medicine` — `5` min, `daily`, start `08:00`
+   (same time on purpose, to trigger a conflict).
+4. Click **Generate schedule** under **Build Schedule**. PawPal+ warns that Rex is
+   double-booked at 08:00, then plans both tasks within the 60-minute budget and
+   shows minutes used / time left.
+5. Scroll to **Explore Tasks** and switch the **View** dropdown to
+   *Chronological (by start time)* to see the tasks ordered by clock time.
+
+### Key Scheduler behaviors on display
+
+- **Sorting** — chronological by start time (unscheduled tasks sort last) and
+  shortest-first by duration.
+- **Filtering** — by pet, by completion status, and by frequency label.
+- **Conflict warnings** — overlapping tasks produce readable `⚠️` messages that
+  distinguish one pet *double-booked* from two *different* pets colliding; the check
+  never raises.
+- **Budgeted day plan** — greedy shortest-first selection over tasks *due today*,
+  returned in chronological order, stopping once the time budget is spent.
+- **Recurrence** — completing a daily/weekly task auto-spawns its next occurrence;
+  monthly tasks don't regenerate.
+
+### Sample CLI output (`python main.py`)
+
+The CLI demo seeds two pets and five tasks (added out of order, with a deliberate
+08:00 double-booking) and prints every behavior above:
+
+```text
+PawPal — Shu has 60 minutes today
+Pets: Rex (Labrador), age 3, Milo (Tabby Cat), age 5
+
+Tasks as entered (insertion order)
+----------------------------------------
+  09:00  Vet check-up
+  08:00  Morning walk
+  08:00  Give medicine
+  18:00  Brush coat
+  08:15  Feed
+
+Sorted by start time (chronological)
+----------------------------------------
+  08:00  Morning walk
+  08:00  Give medicine
+  08:15  Feed
+  09:00  Vet check-up
+  18:00  Brush coat
+
+Sorted by duration (shortest first)
+----------------------------------------
+  [  5 min]  Give medicine
+  [ 10 min]  Feed
+  [ 15 min]  Brush coat
+  [ 30 min]  Morning walk
+  [ 60 min]  Vet check-up
+
+Filter — Rex's tasks:
+  - Vet check-up
+  - Morning walk
+  - Give medicine
+
+Conflict check (lightweight — warns, never crashes)
+----------------------------------------
+  ⚠️  Rex double-booked: 'Morning walk' (08:00) overlaps 'Give medicine' (08:00)
+  ⚠️  Rex vs Milo: 'Morning walk' (08:00) overlaps 'Feed' (08:15)
+
+Today's Schedule (due tasks that fit the budget)
+----------------------------------------
+  08:00  [  5 min] Give medicine (daily)
+  08:00  [ 30 min] Morning walk (daily)
+  08:15  [ 10 min] Feed (daily)
+  18:00  [ 15 min] Brush coat (weekly)
+----------------------------------------
+  Total: 60 of 60 minutes used
+
+Recurrence — completing a task regenerates it
+----------------------------------------
+  Before: Rex has 3 tasks
+  Completed daily 'Morning walk' → spawned: Task('Morning walk', 30min @08:00, daily, todo)
+  New occurrence due: 2026-07-06 (today + 1 day)
+  After:  Rex has 4 tasks
+  Rex's tasks now:
+    - Vet check-up (todo)
+    - Morning walk (done)
+    - Give medicine (todo)
+    - Morning walk (todo)
+
+  Completing monthly 'Vet check-up' spawns nothing: 4 → 4 tasks
+```
 
 ## Sample Output
 > Today's Schedule
