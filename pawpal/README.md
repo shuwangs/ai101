@@ -139,3 +139,27 @@ Describe your app in numbered steps so a reader can follow along without watchin
 >  [ 30 min] Morning walk (daily)
 > ----------------------------------------
 > Total: 55 of 60 minutes used
+
+## Testing PawPal+
+Run the testing
+`python -m pytest`
+
+**28 tests covering:**
+- **Sorting** — chronological order, unscheduled tasks last (even descending), stable ties, sort-by-duration, empty schedule.
+- **Recurrence** — completing a daily task spawns a fresh instance due the next day (weekly → 7 days); no duplicate on repeat completion; monthly doesn't auto-regenerate; `is_due` boundaries.
+- **Conflict detection** — identical and partial overlaps flagged; touching boundaries don't conflict; full containment does; same-pet double-book vs. two-pet clash; completed tasks drop out.
+- **Scheduling budget** — zero budget schedules nothing; greedy shortest-first maximizes task count; over-budget tasks excluded.
+- **Validation** — bad start times, durations, ages, and budgets rejected.
+
+
+- The testing output
+> ======== test session starts =============
+> platform darwin -- Python 3.13.2, pytest-9.1.0, pluggy-1.6.0
+> collected 28 items                                                                                            
+
+> tests/test_pawpal.> py ............................                                                       [100%]
+
+> ======= 28 passed in 0.02s =======
+
+
+**Confidence Level**: 3 

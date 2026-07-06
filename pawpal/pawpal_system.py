@@ -147,13 +147,17 @@ class Task:
     def is_due(self, today: Optional[date] = None) -> bool:
         """Return whether this recurring task should appear on ``today``.
 
-        A task never completed is always due. Otherwise it becomes due again
-        once its frequency interval has elapsed since ``last_completed``.
-        Unknown frequencies are treated as daily.
+        A task never completed is always due, unless it carries a future
+        ``due_date`` (e.g. the next occurrence spawned when a recurring task is
+        completed) — then it isn't due until that day arrives. Once completed,
+        it becomes due again after its frequency interval has elapsed since
+        ``last_completed``. Unknown frequencies are treated as daily.
         """
+        today = today if today is not None else date.today()
+        if self.due_date is not None and today < self.due_date:
+            return False
         if self.last_completed is None:
             return True
-        today = today if today is not None else date.today()
         interval = _RECURRENCE_DAYS.get(self.frequency, 1)
         return today >= self.last_completed + timedelta(days=interval)
 
@@ -300,11 +304,12 @@ class Scheduler:
     def detect_conflicts(self) -> List[Tuple[Task, Task]]:
         """Return pairs of scheduled tasks whose time intervals overlap.
 
-        Only tasks with start times can conflict. Sorting by start time first
-        means we only compare each task against the next few, and can stop as
-        soon as a later task starts after the current one ends.
+        Only pending tasks with start times can conflict — a completed task no
+        longer occupies its slot. Sorting by start time first means we only
+        compare each task against the next few, and can stop as soon as a later
+        task starts after the current one ends.
         """
-        scheduled = [t for t in self.view_tasks() if t.start_minutes is not None]
+        scheduled = [t for t in self.pending_tasks() if t.start_minutes is not None]
         scheduled.sort(key=lambda t: t.start_minutes)
         conflicts: List[Tuple[Task, Task]] = []
         for i, task in enumerate(scheduled):
