@@ -65,18 +65,32 @@ else:
         format_func=lambda i: owner.pets[i].name,
     )
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         task_title = st.text_input("Task title", value="Morning walk")
     with col2:
         duration = st.number_input("Duration (minutes)", min_value=1, max_value=240, value=20)
     with col3:
         frequency = st.selectbox("Frequency", ["daily", "weekly", "monthly"])
+    with col4:
+        # Optional "HH:MM" start time — enables chronological sorting and
+        # conflict detection in the Scheduler. Blank means "unscheduled".
+        start_time = st.text_input("Start time (HH:MM)", value="", placeholder="08:00")
 
     if st.button("Add task"):
         pet = owner.pets[chosen_index]
-        pet.add_task(Task(task_title, time=int(duration), frequency=frequency))
-        st.success(f"Added '{task_title}' to {pet.name}!")
+        try:
+            pet.add_task(
+                Task(
+                    task_title,
+                    time=int(duration),
+                    frequency=frequency,
+                    start_time=start_time or None,
+                )
+            )
+            st.success(f"Added '{task_title}' to {pet.name}!")
+        except ValueError as err:
+            st.error(f"Couldn't add task: {err}")
 
     # Show each pet and its tasks.
     for pet in owner.pets:
@@ -84,7 +98,12 @@ else:
         if pet.tasks:
             st.table(
                 [
-                    {"task": t.description, "minutes": t.time, "frequency": t.frequency}
+                    {
+                        "task": t.description,
+                        "minutes": t.time,
+                        "frequency": t.frequency,
+                        "start": t.start_time or "—",
+                    }
                     for t in pet.tasks
                 ]
             )
@@ -95,16 +114,86 @@ st.divider()
 
 st.subheader("Build Schedule")
 
+
+def tasks_to_rows(tasks):
+    """Turn a list of Task objects into table-ready rows for st.table."""
+    return [
+        {
+            "Start": t.start_time or "—",
+            "Task": t.description,
+            "Pet": t.pet.name if t.pet is not None else "—",
+            "Minutes": t.time,
+            "Frequency": t.frequency,
+            "Status": "✅ done" if t.completed else "⏳ pending",
+        }
+        for t in tasks
+    ]
+
+
 if st.button("Generate schedule"):
     scheduler = Scheduler(owner)                     # 1. build a Scheduler from the owner
     schedule = scheduler.generate_today_schedule()   # 2. compute today's tasks (a list of Task)
+
+    # Flag any overlapping tasks before showing the plan. conflict_warnings()
+    # never raises — an empty list just means the schedule is clear.
+    warnings = scheduler.conflict_warnings()
+    if warnings:
+        st.warning("Scheduling conflicts detected:")
+        for warning in warnings:
+            st.write(warning)
+    else:
+        st.success("No scheduling conflicts — the day is clear! ✅")
 
     st.markdown(f"### Today's Schedule ({owner.get_available_time()} min budget)")
     if not schedule:                                 # 3. show the result
         st.warning("Nothing fits in today's time budget (or no pending tasks).")
     else:
-        total = 0
-        for task in schedule:
-            st.write(f"- **{task.time} min** — {task.description} ({task.frequency})")
-            total += task.time
-        st.caption(f"Total: {total} of {owner.get_available_time()} minutes used")
+        total = sum(task.time for task in schedule)
+        budget = owner.get_available_time()
+        col_a, col_b, col_c = st.columns(3)
+        col_a.metric("Tasks planned", len(schedule))
+        col_b.metric("Minutes used", f"{total} / {budget}")
+        col_c.metric("Time left", f"{budget - total} min")
+        st.table(tasks_to_rows(schedule))
+        st.success(f"Planned {len(schedule)} task(s) using {total} of {budget} minutes.")
+
+st.divider()
+
+# ---- Sort & filter explorer -------------------------------------------------
+# Always available (independent of the Generate button) so the user can slice
+# their tasks however they like. Each view renders as a professional st.table.
+st.subheader("Explore Tasks")
+
+if not owner.get_all_tasks():
+    st.info("Add some tasks above to sort and filter them here.")
+else:
+    scheduler = Scheduler(owner)
+    view = st.selectbox(
+        "View",
+        [
+            "Chronological (by start time)",
+            "Shortest first (by duration)",
+            "Pending only",
+            "By pet",
+            "By frequency",
+        ],
+    )
+
+    if view == "Chronological (by start time)":
+        rows = tasks_to_rows(scheduler.sort_by_start_time())
+    elif view == "Shortest first (by duration)":
+        rows = tasks_to_rows(scheduler.sort_by_time())
+    elif view == "Pending only":
+        rows = tasks_to_rows(scheduler.filter_by_status(completed=False))
+    elif view == "By pet":
+        pet_name = st.selectbox("Pet", [p.name for p in owner.pets])
+        rows = tasks_to_rows(scheduler.filter_by_pet(pet_name))
+    else:  # By frequency
+        freq = st.selectbox("Frequency", ["daily", "weekly", "monthly"])
+        rows = tasks_to_rows(scheduler.filter_by_frequency(freq))
+
+    if rows:
+        st.table(rows)
+        st.caption(f"{len(rows)} task(s) shown.")
+    else:
+        st.warning("No tasks match this view.")
