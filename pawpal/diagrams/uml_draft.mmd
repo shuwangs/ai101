@@ -1,0 +1,36 @@
+classDiagram
+    class Pet {
+        -String name
+        -int age
+        -String breed
+        +updateInfo(name, age, breed) void
+        +viewInfo() String
+    }
+
+    class CareTask {
+        -String name
+        -int duration
+        -int priority
+        -String category
+        -boolean completed
+        +completeTask() void
+    }
+
+    class Owner {
+        -String name
+        -int availableTime
+        +getAvailableTime() int
+    }
+
+    class Scheduler {
+        +addTask(task) void
+        +viewTasks() List~CareTask~
+        +sortByPriority() List~CareTask~
+        +filterByCategory(category) List~CareTask~
+        +generateTodaySchedule() List~CareTask~
+    }
+
+    Owner "1" --> "*" Pet : owns
+    Scheduler --> Pet : schedules for
+    Scheduler --> Owner : reads availability
+    Scheduler "1" o-- "*" CareTask : manages
