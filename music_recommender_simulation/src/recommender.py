@@ -1,5 +1,6 @@
 from typing import List, Dict, Tuple, Optional
 from dataclasses import dataclass
+import csv
 
 @dataclass
 class Song:
@@ -50,24 +51,50 @@ def load_songs(csv_path: str) -> List[Dict]:
     Loads songs from a CSV file.
     Required by src/main.py
     """
-    # TODO: Implement CSV loading logic
-    print(f"Loading songs from {csv_path}...")
-    return []
+    songs = []
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            for field in (
+                "id",
+                "energy",
+                "tempo_bpm",
+                "valence",
+                "danceability",
+                "acousticness",
+            ):
+                row[field] = float(row[field])
+            songs.append(row)
+    return songs
 
 def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
-    """
-    Scores a single song against user preferences.
-    Required by recommend_songs() and src/main.py
-    """
-    # TODO: Implement scoring logic using your Algorithm Recipe from Phase 2.
-    # Expected return format: (score, reasons)
-    return []
+    """Return a song's preference score and human-readable scoring reasons."""
+    score = 0.0
+    reasons = []
+
+    if song["genre"] == user_prefs["genre"]:
+        score += 4.0
+        reasons.append("genre match (+4.0)")
+
+    if song["mood"] == user_prefs["mood"]:
+        score += 3.0
+        reasons.append("mood match (+3.0)")
+
+    energy_score = 3.0 * (1.0 - abs(song["energy"] - user_prefs["energy"]))
+    score += energy_score
+    reasons.append(f"energy similarity (+{energy_score:.1f})")
+
+    return score, reasons
 
 def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tuple[Dict, float, str]]:
-    """
-    Functional implementation of the recommendation logic.
-    Required by src/main.py
-    """
-    # TODO: Implement scoring and ranking logic
-    # Expected return format: (song_dict, score, explanation)
-    return []
+    """Return the top-k songs ranked by preference score."""
+    if k <= 0:
+        return []
+
+    ranked = []
+    for song in songs:
+        score, reasons = score_song(user_prefs, song)
+        ranked.append((song, score, ", ".join(reasons)))
+
+    ranked.sort(key=lambda recommendation: recommendation[1], reverse=True)
+    return ranked[:k]
