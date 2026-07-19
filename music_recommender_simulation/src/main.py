@@ -17,13 +17,66 @@ def main() -> None:
 
     # print("\nLoaded songs:\n", len(songs), "songs")
 
-    # Starter example profile
-    user_prefs = {
+    high_energy_pop = {
         "genre": "pop",
         "mood": "happy", 
-        "energy": 0.8,
-        "acousticness": 0.2,
+        "energy": 0.9,
+        "acousticness": 0.1,
     }
+
+    chill_lofi = {
+        "genre": "lofi",
+        "mood": "chill",
+        "energy": 0.25,
+        "acousticness": 0.75,
+    }
+
+    deep_intense_rock = {
+        "genre": "rock",
+        "mood": "intense",
+        "energy": 0.85,
+        "acousticness": 0.3,
+    }
+
+    # Edge case: capitalization prevents exact genre and mood matches.
+    case_mismatch_pop = {
+        "genre": "POP",
+        "mood": "HAPPY",
+        "energy": 0.9,
+        "acousticness": 0.1,
+    }
+
+    # Adversarial: an out-of-range target can produce negative energy scores.
+    impossible_energy = {
+        "genre": "pop",
+        "mood": "happy",
+        "energy": 10.0,
+        "acousticness": 0.1,
+    }
+
+    # Edge case: changing acousticness should affect results, but the current
+    # scoring function does not use this preference.
+    acousticness_only = {
+        "genre": "not-a-real-genre",
+        "mood": "not-a-real-mood",
+        "energy": 0.5,
+        "acousticness": 1.0,
+    }
+
+    test_profiles = [
+        high_energy_pop,
+        chill_lofi,
+        deep_intense_rock,
+    ]
+
+    edge_case_profiles = [
+        case_mismatch_pop,
+        impossible_energy,
+        acousticness_only,
+    ]
+
+    # Change this assignment to try a different preference profile.
+    user_prefs = edge_case_profiles[0]
 
     recommendations = recommend_songs(user_prefs, songs, k=5)
 

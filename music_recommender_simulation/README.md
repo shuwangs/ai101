@@ -155,7 +155,11 @@ Read and complete `model_card.md`:
 Write 1 to 2 paragraphs here about what you learned:
 
 - about how recommenders turn data into predictions
+  I learned about some concepts that used for recommendation. 
 - about where bias or unfairness could show up in systems like this
+  - 1. it based on what songs already in the database, so if the data pool is larger may have better recommendation.
+  - 2. The scoring algorithm is kind of fixed right now, but different suer may value different metrics here. 
+  
 
 
 
